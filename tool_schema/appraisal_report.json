@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "document_type": "Appraisal Report",
+  "description": "Property appraisal report (1004, 2055, etc.)",
+  "verification_field": "appraised_value",
+  "verification_description": "Appraised property value - if not found, this is not an appraisal report",
+  "bucket_names": [
+    "Appraisal",
+    "Appraisal Report",
+    "Property Appraisal"
+  ],
+  "attachment_keywords": ["appraisal report", "appraisal pdf", "final appraisal", "uniform residential", "1004", "2055"],
+  "attachment_avoid": ["notice of right", "invoice", "license", "proof of delivery", "logging", "compliance", "acknowledgment"],
+  "fields_provided": [
+    "appraised_value",
+    "parcel_number"
+  ],
+  "properties": {
+    "appraised_value": {
+      "type": "number",
+      "description": "Appraised property market value. IMPORTANT: Look in the RECONCILIATION section of the Uniform Residential Appraisal Report. Find the dollar amount that appears at the end of this sentence: 'Based on a complete visual inspection of the interior and exterior areas of the subject property, defined scope of work, statement of assumptions and limiting conditions, and appraiser's certification, my (our) opinion of the market value, as defined, of the real property that is the subject of this report is $____'. This is the final appraised value. (REQUIRED for verification)"
+    },
+    "property_address": {
+      "type": "string",
+      "description": "Property street address"
+    },
+    "property_state": {
+      "type": "string",
+      "description": "Property state"
+    },
+    "property_zip": {
+      "type": "string",
+      "description": "Property ZIP code"
+    },
+    "property_type": {
+      "type": "string",
+      "description": "Property type (SFR, Condo, etc.)"
+    },
+    "parcel_number": {
+      "type": "string",
+      "description": "Parcel/APN number"
+    },
+    "appraisal_date": {
+      "type": "string",
+      "description": "Date of appraisal"
+    },
+    "appraiser_name": {
+      "type": "string",
+      "description": "Appraiser name"
+    },
+    "appraiser_license": {
+      "type": "string",
+      "description": "Appraiser license number"
+    },
+    "appraiser_company": {
+      "type": "string",
+      "description": "Appraiser's company/firm name"
+    },
+    "overall_condition_rating": {
+      "type": "string",
+      "description": "UAD Condition Rating (C1-C6). Look in the IMPROVEMENTS section of the URAR for 'Condition of the Improvements' or the Condition rating dropdown near the Quality rating."
+    },
+    "quality_rating": {
+      "type": "string",
+      "description": "UAD Quality Rating (Q1-Q6). Look in the IMPROVEMENTS section of the URAR, near the Condition rating."
+    },
+    "condition_comments": {
+      "type": "string",
+      "description": "Appraiser's narrative comments on the property's condition"
+    },
+    "physical_deficiencies": {
+      "type": "string",
+      "description": "Physical deficiencies or adverse conditions noted by the appraiser (e.g. deferred maintenance, needed repairs)"
+    },
+    "effective_age": {
+      "type": "string",
+      "description": "Effective age of the improvements, as stated by the appraiser"
+    },
+    "appraisal_subject_to_completion": {
+      "type": "boolean",
+      "description": "True if the appraiser's certification states this appraisal 'is subject to satisfactory completion' of alterations/repairs per plans and specifications (URAR Reconciliation section). Present in LG-docsOrch's production Appraisal Report extraction schema but never modeled here previously; see determine_resubmission_priority."
+    },
+    "appraisal_subject_to_repairs": {
+      "type": "boolean",
+      "description": "True if the appraiser's certification states this appraisal 'is subject to the following repairs or alterations' being completed (URAR Reconciliation section)."
+    },
+    "appraisal_subject_to_conditions": {
+      "type": "string",
+      "description": "Free-text description of any other conditions the appraisal's value opinion is made subject to, if stated in the URAR Reconciliation section."
+    },
+    "comparable_sales": {
+      "type": "array",
+      "description": "Comparable sales grid from the Sales Comparison Approach section (page 2 of Form 1004)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "address": {"type": "string", "description": "Comparable property address"},
+          "proximity_to_subject": {"type": "string", "description": "Distance/proximity to the subject property"},
+          "sale_price": {"type": "number", "description": "Comparable's sale price"},
+          "sale_date": {"type": "string", "description": "Date of sale"},
+          "gross_living_area": {"type": "number", "description": "Gross living area (sq ft)"},
+          "gross_adjustment": {"type": "number", "description": "Total gross adjustment amount"},
+          "net_adjustment": {"type": "number", "description": "Total net adjustment amount"},
+          "adjusted_sale_price": {"type": "number", "description": "Sale price after adjustments"}
+        }
+      }
+    }
+  },
+  "required": ["appraised_value"]
+}
+
