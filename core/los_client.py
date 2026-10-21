@@ -1,16 +1,18 @@
 """LOS (Loan Origination System / Encompass) field-read abstraction.
 
-This repo does NOT reimplement Encompass authentication — LG-discOrch already
-has a production-grade client (`tools/encompass_client.py::get_encompass_client`,
-using EncompassConnect with batched reads of 50 field IDs at a time; see
-tools/document_review.py:2119-2138). Duplicating that auth flow here would
-just create a second thing to keep in sync.
+Both agents' tools depend on this tiny `LOSClient` protocol rather than
+calling Encompass directly, so tests/demos can swap in `MockLOSClient` and
+production code can swap in a real client without touching tool logic.
 
-Instead, both agents' tools depend on this tiny `LOSClient` protocol. In
-production, wire in `CallableLOSClient` around whatever function your
-deployment already uses to batch-read Encompass fields (e.g. a thin wrapper
-around LG-discOrch's `get_encompass_client(...).get_field(loan_id, field_ids)`).
-For local dev/tests/demos, use `MockLOSClient`.
+Three implementations:
+  - `MockLOSClient`: in-memory fixtures, for tests/demos/local dev.
+  - `EncompassLOSClient`: real wiring around `core.encompass_client`
+    (vendored from LG-ConstructionEncompass — a dependency-light REST client,
+    no private `copilotagent` package needed). Confirmed live against Prod
+    2026-10-21. This is the one to use in production.
+  - `CallableLOSClient`: generic adapter if you'd rather wire in some other
+    already-authenticated batched field-read function instead (e.g. one
+    living in LG-discOrch/LG-docsOrch).
 """
 
 from __future__ import annotations
@@ -66,3 +68,43 @@ class CallableLOSClient:
 
     def get_fields(self, loan_guid: str, field_ids: List[str]) -> Dict[str, Any]:
         return self._read_fields_fn(loan_guid, field_ids)
+
+
+class EncompassLOSClient:
+    """Real LOS client, backed by `core.encompass_client` (vendored from
+    LG-ConstructionEncompass). Confirmed live against Prod Encompass
+    2026-10-21: resolved a loan by number via `search_loans` and read back
+    loan number / borrower name / loan type / property state fields.
+
+    Env (see .env.example):
+        TEST_ENCOMPASS_CLIENT_ID / _CLIENT_SECRET / _INSTANCE_ID / _API_BASE_URL
+        PROD_ENCOMPASS_CLIENT_ID / _CLIENT_SECRET / _INSTANCE_ID /
+            _USERNAME / _PASSWORD / _SUBJECT_USER_ID / _API_BASE_URL
+
+    Usage:
+        los = EncompassLOSClient(env="PROD")
+        fields = los.get_fields(loan_guid, ["356", "1041", "1894"])
+
+    Read-only by design: only exposes `get_fields` (-> read_fields) and
+    `find_loan_guid` (-> search_loans). Does not expose write_fields.
+    """
+
+    def __init__(self, env: str = "TEST", use_cache: bool = True):
+        self._env = env
+        self._use_cache = use_cache
+
+    def _client(self):
+        from core.encompass_client import get_encompass_client
+
+        return get_encompass_client(env=self._env, use_cache=self._use_cache)
+
+    def get_fields(self, loan_guid: str, field_ids: List[str]) -> Dict[str, Any]:
+        return self._client().read_fields(loan_guid, field_ids)
+
+    def find_loan_guid(self, loan_number: str) -> List[Dict[str, Any]]:
+        """Resolve a human-entered loan number to Encompass loan GUID(s).
+
+        Returns a list of {"loanGuid", "loanNumber", "borrowerName"} dicts
+        (usually 0 or 1 entries for an exact loan-number match).
+        """
+        return self._client().search_loans(loan_number)
